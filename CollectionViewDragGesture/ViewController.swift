@@ -24,6 +24,9 @@ class ViewController: UIViewController {
     }()
     
     private var datasource: UICollectionViewDiffableDataSource<Int,String>!
+    
+    private var outterData = ["1", "2", "3", "4"]
+    private var innterData = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -114,7 +117,7 @@ private extension ViewController {
     func applyDatasource() {
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([1])
-        snapshot.appendItems(["1","2","3","4","5","6", "7", "8", "9", "10"])
+        snapshot.appendItems(outterData)
         
         datasource.apply(snapshot, animatingDifferences: true)
     }
@@ -126,13 +129,26 @@ private extension ViewController {
             item.dragItem.itemProvider.loadObject(ofClass: NSString.self) { string, error in
                 if let string = string as? String {
                     print(string)
-                    snapshot.deleteItems([string])
-                    snapshot.insertItems([string], beforeItem: snapshot.itemIdentifiers[destinationIndexPath.item])
-                    DispatchQueue.main.async {
-                        self.datasource.apply(snapshot, animatingDifferences: false)
+                    
+                    let sourceItem = snapshot.itemIdentifiers[sourceIndexPath.item]
+                    let destinationItem = snapshot.itemIdentifiers[destinationIndexPath.item]
+                    
+                    if let sourceIndex = snapshot.indexOfItem(sourceItem),
+                       let destinationIndex = snapshot.indexOfItem(destinationItem) {
+                        if sourceIndex < destinationIndex {
+                            snapshot.deleteItems([sourceItem])
+                            snapshot.insertItems([sourceItem], afterItem: destinationItem)
+                        } else {
+                            snapshot.deleteItems([sourceItem])
+                            snapshot.insertItems([sourceItem], beforeItem: destinationItem)
+                        }
+                        DispatchQueue.main.async {
+                            self.datasource.apply(snapshot, animatingDifferences: true)
+                        }
                     }
+                    
+                    coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
                 }
-                coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
             }
         }
     }

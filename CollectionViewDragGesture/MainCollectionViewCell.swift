@@ -23,6 +23,8 @@ final class MainCollectionViewCell: UICollectionViewCell {
         return collectionView
     }()
     
+    private var data: [Int] = []
+    
     private lazy var cellLabel: UILabel = {
         let label = UILabel()
         label.text = ""
@@ -87,7 +89,9 @@ private extension MainCollectionViewCell {
     func configureDatasource() {
         datasource = UICollectionViewDiffableDataSource<Int, Int>(collectionView: collectionView, cellProvider: { collectionView, indexPath, item in
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: InnerCollectionViewCell.identifier, for: indexPath) as? InnerCollectionViewCell else { return UICollectionViewCell() }
-            cell.setupCell(text: "\(item)")
+            let result = item * Int(self.cellLabel.text!)!
+            cell.setupCell(text: "\(result)")
+            
             return cell
         })
         
