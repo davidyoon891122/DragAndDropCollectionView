@@ -44,7 +44,8 @@ final class MainCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setupCell(text: String) {
+    func setupCell(text: String, subData: [Int]) {
+        data = subData
         cellLabel.text = text
     }
 }
@@ -89,8 +90,9 @@ private extension MainCollectionViewCell {
     func configureDatasource() {
         datasource = UICollectionViewDiffableDataSource<Int, Int>(collectionView: collectionView, cellProvider: { collectionView, indexPath, item in
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: InnerCollectionViewCell.identifier, for: indexPath) as? InnerCollectionViewCell else { return UICollectionViewCell() }
-            let result = item * Int(self.cellLabel.text!)!
-            cell.setupCell(text: "\(result)")
+            
+            let data = self.data[indexPath.row]
+            cell.setupCell(text: "\(data)")
             
             return cell
         })

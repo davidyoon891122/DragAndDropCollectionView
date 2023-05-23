@@ -106,8 +106,8 @@ private extension ViewController {
     func configureDatasource() {
         datasource = UICollectionViewDiffableDataSource<Int, String>(collectionView: mainCollectionView, cellProvider: { collectionView, indexPath, item in
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MainCollectionViewCell.identifier, for: indexPath) as? MainCollectionViewCell else { return UICollectionViewCell() }
-            
-            cell.setupCell(text: item)
+            let subdata = self.innterData[indexPath.row]
+            cell.setupCell(text: item, subData: subdata)
             return cell
         })
         
