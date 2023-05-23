@@ -26,7 +26,7 @@ class ViewController: UIViewController {
     private var datasource: UICollectionViewDiffableDataSource<Int,String>!
     
     private var outterData = ["1", "2", "3", "4"]
-    private var innterData = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]
+    private var innterData = [["1", "2", "3", "4"], ["5", "6", "7", "8"], ["9", "10", "11", "12"], ["13", "14", "15", "16"]]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -116,7 +116,7 @@ private extension ViewController {
     
     func applyDatasource() {
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
-        snapshot.appendSections([1])
+        snapshot.appendSections([0])
         snapshot.appendItems(outterData)
         
         datasource.apply(snapshot, animatingDifferences: true)

@@ -20,10 +20,13 @@ final class MainCollectionViewCell: UICollectionViewCell {
             forCellWithReuseIdentifier: InnerCollectionViewCell.identifier
         )
         
+        collectionView.dragDelegate = self
+        collectionView.dropDelegate = self
+        
         return collectionView
     }()
     
-    private var data: [Int] = []
+    private var data: [String] = []
     
     private lazy var cellLabel: UILabel = {
         let label = UILabel()
@@ -32,7 +35,7 @@ final class MainCollectionViewCell: UICollectionViewCell {
         return label
     }()
     
-    private var datasource: UICollectionViewDiffableDataSource<Int, Int>!
+    private var datasource: UICollectionViewDiffableDataSource<Int, String>!
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -44,9 +47,47 @@ final class MainCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setupCell(text: String, subData: [Int]) {
+    func setupCell(text: String, subData: [String]) {
         data = subData
         cellLabel.text = text
+    }
+}
+
+extension MainCollectionViewCell: UICollectionViewDragDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        let item = datasource.itemIdentifier(for: indexPath)
+        let itemProvider = NSItemProvider(object: item! as NSString)
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        return [dragItem]
+    }
+    
+}
+
+extension MainCollectionViewCell: UICollectionViewDropDelegate {
+    func collectionView(_ collectionView: UICollectionView, canHandle session: UIDropSession) -> Bool {
+        return session.canLoadObjects(ofClass: NSString.self)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+        return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        let destinationIndexPath: IndexPath
+        if let indexPath = coordinator.destinationIndexPath {
+            destinationIndexPath = indexPath
+        } else {
+            let section = collectionView.numberOfSections - 1
+            let item = collectionView.numberOfItems(inSection: section)
+            destinationIndexPath = IndexPath(item: item, section: section)
+        }
+        
+        if coordinator.proposal.operation == .move {
+            self.reorderItems(coordinator: coordinator, destinationIndexPath: destinationIndexPath)
+        } else if coordinator.proposal.operation == .copy {
+            //copyItems
+        }
     }
 }
 
@@ -88,7 +129,7 @@ private extension MainCollectionViewCell {
     }
     
     func configureDatasource() {
-        datasource = UICollectionViewDiffableDataSource<Int, Int>(collectionView: collectionView, cellProvider: { collectionView, indexPath, item in
+        datasource = UICollectionViewDiffableDataSource<Int, String>(collectionView: collectionView, cellProvider: { collectionView, indexPath, item in
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: InnerCollectionViewCell.identifier, for: indexPath) as? InnerCollectionViewCell else { return UICollectionViewCell() }
             
             let data = self.data[indexPath.row]
@@ -101,9 +142,41 @@ private extension MainCollectionViewCell {
     }
     
     func applySnapshot() {
-        var snapshot = NSDiffableDataSourceSnapshot<Int, Int>()
-        snapshot.appendSections([1])
-        snapshot.appendItems([1,2,3,4])
+        var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
+        snapshot.appendSections([0])
+        snapshot.appendItems(["1","2","3","4"])
         datasource.apply(snapshot, animatingDifferences: true)
+    }
+    
+    func reorderItems(coordinator: UICollectionViewDropCoordinator, destinationIndexPath: IndexPath) {
+        if let item = coordinator.items.first,
+           let sourceIndexPath = item.sourceIndexPath {
+            var snapshot = datasource.snapshot()
+            item.dragItem.itemProvider.loadObject(ofClass: NSString.self) { string, error in
+                if let string = string as? String {
+                    print(string)
+                    
+                    let sourceItem = snapshot.itemIdentifiers[sourceIndexPath.item]
+                    let destinationItem = snapshot.itemIdentifiers[destinationIndexPath.item]
+                    
+                    if let sourceIndex = snapshot.indexOfItem(sourceItem),
+                       let destinationIndex = snapshot.indexOfItem(destinationItem) {
+                        if sourceIndex < destinationIndex {
+                            snapshot.deleteItems([sourceItem])
+                            snapshot.insertItems([sourceItem], afterItem: destinationItem)
+                        } else {
+                            snapshot.deleteItems([sourceItem])
+                            snapshot.insertItems([sourceItem], beforeItem: destinationItem)
+                        }
+                        dump(snapshot)
+                        DispatchQueue.main.async {
+                            self.datasource.apply(snapshot, animatingDifferences: true)
+                        }
+                    }
+                    
+                    coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+                }
+            }
+        }
     }
 }
